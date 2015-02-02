@@ -26,6 +26,7 @@ Sample line:
 def parse_file(f):
     times = defaultdict(list)
     cwnd = defaultdict(list)
+    portip = {}
     srtt = []
     for l in open(f).xreadlines():
         fields = l.strip().split(' ')
@@ -34,12 +35,14 @@ def parse_file(f):
         if fields[2].split(':')[1] != args.port:
             continue
         sport = int(fields[1].split(':')[1])
+        ip = fields[1].split(':')[0].split('.')[3]
+        portip[sport] = ip
         times[sport].append(float(fields[0]))
 
         c = int(fields[6])
         cwnd[sport].append(c * 1480 / 1024.0)
         srtt.append(int(fields[-1]))
-    return times, cwnd
+    return times, cwnd, portip
 
 added = defaultdict(int)
 events = []
@@ -47,13 +50,13 @@ events = []
 def plot_cwnds(ax):
     global events
     for f in args.files:
-        times, cwnds = parse_file(f)
+        times, cwnds, portip = parse_file(f)
         for port in sorted(cwnds.keys()):
             t = times[port]
             cwnd = cwnds[port]
 
             events += zip(t, [port]*len(t), cwnd)
-            ax.plot(t, cwnd)
+            ax.plot(t, cwnd, lw=2, label="%s" % portip[port])
 
     events.sort()
 total_cwnd = 0
